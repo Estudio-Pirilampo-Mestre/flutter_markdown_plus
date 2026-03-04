@@ -33,8 +33,6 @@ final List<String> _kBlockTags = <String>[
 
 const List<String> _kListTags = <String>['ul', 'ol'];
 
-bool _isBlockTag(String? tag) => _kBlockTags.contains(tag);
-
 bool _isListTag(String tag) => _kListTags.contains(tag);
 
 class _BlockElement {
@@ -177,6 +175,8 @@ class MarkdownBuilder implements md.NodeVisitor {
   String? _currentBlockTag;
   String? _lastVisitedTag;
   bool _isInBlockquote = false;
+
+  bool _isBlockTag(String? tag) => _kBlockTags.contains(tag) || builders[tag] is MarkdownBlockBuilder;
 
   /// Returns widgets that display the given Markdown nodes.
   ///
@@ -356,9 +356,25 @@ class MarkdownBuilder implements md.NodeVisitor {
           },
           child: _buildRichText(delegate.formatText(styleSheet, text.text)));
     } else {
+      TextStyle? style;
+
+      if (_isInBlockquote) {
+        // The paragraph style is the default, so use it to merge with the
+        // blockquote style (if any).
+        style = styleSheet.p?.merge(styleSheet.blockquote) ?? styleSheet.blockquote;
+
+        // Then if this is not a paragraph, merge with the last inline style
+        // to handle titles, bold, italics, etc.
+        if (_inlines.last.tag != 'p') {
+          style = style?.merge(_inlines.last.style);
+        }
+      } else {
+        style = _inlines.last.style;
+      }
+
       child = _buildRichText(
         TextSpan(
-          style: _isInBlockquote ? styleSheet.blockquote : _inlines.last.style,
+          style: style,
           text: trimText(text.text),
           recognizer: _linkHandlers.isNotEmpty ? _linkHandlers.last : null,
         ),
@@ -386,7 +402,22 @@ class MarkdownBuilder implements md.NodeVisitor {
         if (current.children.isNotEmpty) {
           return Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: fitContent ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
+            crossAxisAlignment: fitContent
+                ? switch (_wrapAlignmentForBlockTag(tag)) {
+                    // Start
+                    WrapAlignment.spaceAround ||
+                    WrapAlignment.spaceBetween ||
+                    WrapAlignment.spaceEvenly ||
+                    WrapAlignment.start =>
+                      CrossAxisAlignment.start,
+
+                    // Center
+                    WrapAlignment.center => CrossAxisAlignment.center,
+
+                    // End
+                    WrapAlignment.end => CrossAxisAlignment.end,
+                  }
+                : CrossAxisAlignment.stretch,
             children: current.children,
           );
         } else {
@@ -394,13 +425,33 @@ class MarkdownBuilder implements md.NodeVisitor {
         }
       }
 
-      Widget child = builders[tag]?.visitElementAfterWithContext(
+      if (tag == 'blockquote') {
+        _isInBlockquote = false;
+      }
+
+      Widget child;
+      final MarkdownElementBuilder? builder = builders[tag];
+
+      if (builder != null) {
+        if (builder is MarkdownBlockBuilder) {
+          child = builder.visitElementAfterWithContext(
             delegate.context,
             element,
             styleSheet.styles[tag],
             _inlines.isNotEmpty ? _inlines.last.style : null,
-          ) ??
-          defaultChild();
+            child: defaultChild(),
+          );
+        } else {
+          child = builder.visitElementAfterWithContext(
+            delegate.context,
+            element,
+            styleSheet.styles[tag],
+            _inlines.isNotEmpty ? _inlines.last.style : null,
+          )!;
+        }
+      } else {
+        child = defaultChild();
+      }
 
       if (_isListTag(tag)) {
         assert(_listIndents.isNotEmpty);
@@ -439,7 +490,9 @@ class MarkdownBuilder implements md.NodeVisitor {
           );
         }
       } else if (tag == 'table') {
-        if (styleSheet.tableColumnWidth is FixedColumnWidth || styleSheet.tableColumnWidth is IntrinsicColumnWidth) {
+        // If the columnWidth depends on the table's total width (like a flex or
+        // fraction), it should not contain a ScrollView.
+        if (_canColumnWidthHaveScroll(styleSheet.tableColumnWidth!)) {
           child = _ScrollControllerBuilder(
             builder: (BuildContext context, ScrollController tableScrollController, Widget? child) {
               return Scrollbar(
@@ -459,7 +512,6 @@ class MarkdownBuilder implements md.NodeVisitor {
           child = _buildTable();
         }
       } else if (tag == 'blockquote') {
-        _isInBlockquote = false;
         child = DecoratedBox(
           decoration: styleSheet.blockquoteDecoration!,
           child: Padding(
@@ -474,7 +526,10 @@ class MarkdownBuilder implements md.NodeVisitor {
           child: child,
         );
       } else if (tag == 'hr') {
-        child = Container(decoration: styleSheet.horizontalRuleDecoration);
+        child = Container(
+          decoration: styleSheet.horizontalRuleDecoration,
+          margin: styleSheet.horizontalRulePadding,
+        );
       }
 
       _addBlockChild(child);
@@ -574,6 +629,18 @@ class MarkdownBuilder implements md.NodeVisitor {
       _currentBlockTag = null;
     }
     _lastVisitedTag = tag;
+  }
+
+  bool _canColumnWidthHaveScroll(TableColumnWidth columnWidth) {
+    if (columnWidth is MaxColumnWidth) {
+      return _canColumnWidthHaveScroll(columnWidth.a) && _canColumnWidthHaveScroll(columnWidth.b);
+    } else if (columnWidth is MinColumnWidth) {
+      return _canColumnWidthHaveScroll(columnWidth.a) && _canColumnWidthHaveScroll(columnWidth.b);
+    } else if (columnWidth is FlexColumnWidth || columnWidth is FractionColumnWidth) {
+      return false;
+    }
+
+    return true;
   }
 
   Widget _buildTable() {
@@ -914,6 +981,11 @@ class MarkdownBuilder implements md.NodeVisitor {
       case 'li':
         break;
     }
+
+    if (styleSheet.customBlockAlignments.containsKey(blockTag)) {
+      return styleSheet.customBlockAlignments[blockTag]!;
+    }
+
     return WrapAlignment.start;
   }
 

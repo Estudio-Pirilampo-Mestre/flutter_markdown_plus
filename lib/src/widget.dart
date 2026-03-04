@@ -89,6 +89,25 @@ abstract class SyntaxHighlighter {
   TextSpan format(String source);
 }
 
+/// An interface for a block builder.
+abstract class MarkdownBlockBuilder extends MarkdownElementBuilder {
+  @override
+  Widget visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle, {
+    Widget? child,
+  }) {
+    return super.visitElementAfterWithContext(
+      context,
+      element,
+      preferredStyle,
+      parentStyle,
+    )!;
+  }
+}
+
 /// An interface for an element builder.
 abstract class MarkdownElementBuilder {
   /// For block syntax has to return true.
@@ -359,9 +378,6 @@ class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuil
   }
 
   void _parseMarkdown() {
-    final MarkdownStyleSheet fallbackStyleSheet = kFallbackStyle(context, widget.styleSheetTheme);
-    final MarkdownStyleSheet styleSheet = fallbackStyleSheet.merge(widget.styleSheet);
-
     _disposeRecognizers();
 
     final md.Document document = md.Document(
@@ -380,7 +396,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuil
     final MarkdownBuilder builder = MarkdownBuilder(
       delegate: this,
       selectable: widget.selectable,
-      styleSheet: styleSheet,
+      styleSheet: widget.styleSheet ?? kFallbackStyle(context, widget.styleSheetTheme),
       imageDirectory: widget.imageDirectory,
       imageBuilder: widget.imageBuilder,
       checkboxBuilder: widget.checkboxBuilder,

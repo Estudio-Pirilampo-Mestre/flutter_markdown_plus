@@ -52,6 +52,7 @@ class MarkdownStyleSheet {
     this.codeblockPadding,
     this.codeblockDecoration,
     this.horizontalRuleDecoration,
+    this.horizontalRulePadding,
     this.textAlign = WrapAlignment.start,
     this.h1Align = WrapAlignment.start,
     this.h2Align = WrapAlignment.start,
@@ -66,6 +67,8 @@ class MarkdownStyleSheet {
     this.superscriptFontFeatureTag,
     @Deprecated('Use textScaler instead.') this.textScaleFactor,
     TextScaler? textScaler,
+    this.customBlockAlignments = const <String, WrapAlignment>{},
+    this.customBlockTextStyles = const <String, TextStyle?>{},
   })  : assert(
           textScaler == null || textScaleFactor == null,
           'textScaleFactor is deprecated and cannot be specified when textScaler is specified.',
@@ -95,6 +98,7 @@ class MarkdownStyleSheet {
           'th': tableHead,
           'tr': tableBody,
           'td': tableBody,
+          ...customBlockTextStyles,
         };
 
   /// Creates a [MarkdownStyleSheet] from the [TextStyle]s in the provided [ThemeData].
@@ -385,6 +389,7 @@ class MarkdownStyleSheet {
     EdgeInsets? codeblockPadding,
     Decoration? codeblockDecoration,
     Decoration? horizontalRuleDecoration,
+    EdgeInsets? horizontalRulePadding,
     WrapAlignment? textAlign,
     WrapAlignment? h1Align,
     WrapAlignment? h2Align,
@@ -399,6 +404,8 @@ class MarkdownStyleSheet {
     String? superscriptFontFeatureTag,
     @Deprecated('Use textScaler instead.') double? textScaleFactor,
     TextScaler? textScaler,
+    Map<String, WrapAlignment>? customBlockAlignments,
+    Map<String, TextStyle?>? customBlockTextStyles,
   }) {
     assert(
       textScaler == null || textScaleFactor == null,
@@ -452,6 +459,7 @@ class MarkdownStyleSheet {
       codeblockPadding: codeblockPadding ?? this.codeblockPadding,
       codeblockDecoration: codeblockDecoration ?? this.codeblockDecoration,
       horizontalRuleDecoration: horizontalRuleDecoration ?? this.horizontalRuleDecoration,
+      horizontalRulePadding: horizontalRulePadding ?? this.horizontalRulePadding,
       textAlign: textAlign ?? this.textAlign,
       h1Align: h1Align ?? this.h1Align,
       h2Align: h2Align ?? this.h2Align,
@@ -466,6 +474,8 @@ class MarkdownStyleSheet {
       superscriptFontFeatureTag: superscriptFontFeatureTag ?? this.superscriptFontFeatureTag,
       textScaler: newTextScaler,
       textScaleFactor: nextTextScaleFactor,
+      customBlockAlignments: customBlockAlignments ?? this.customBlockAlignments,
+      customBlockTextStyles: customBlockTextStyles ?? this.customBlockTextStyles,
     );
   }
 
@@ -519,6 +529,7 @@ class MarkdownStyleSheet {
       codeblockPadding: other.codeblockPadding,
       codeblockDecoration: other.codeblockDecoration,
       horizontalRuleDecoration: other.horizontalRuleDecoration,
+      horizontalRulePadding: other.horizontalRulePadding,
       textAlign: other.textAlign,
       h1Align: other.h1Align,
       h2Align: other.h2Align,
@@ -537,6 +548,8 @@ class MarkdownStyleSheet {
       // textScaleFactor and the textScaler was derived from that, so should be
       // ignored so that the textScaleFactor continues to be set.
       textScaler: other.textScaleFactor == null ? other.textScaler : null,
+      customBlockAlignments: other.customBlockAlignments,
+      customBlockTextStyles: other.customBlockTextStyles,
     );
   }
 
@@ -673,6 +686,9 @@ class MarkdownStyleSheet {
   /// The decoration to use for `hr` elements.
   final Decoration? horizontalRuleDecoration;
 
+  /// The padding to use for `hr` elements.
+  final EdgeInsets? horizontalRulePadding;
+
   /// The [WrapAlignment] to use for normal text. Defaults to start.
   final WrapAlignment textAlign;
 
@@ -719,6 +735,16 @@ class MarkdownStyleSheet {
   /// Custom font feature tag for font which does not support `sups'
   /// feature to create superscript in footnotes.
   final String? superscriptFontFeatureTag;
+
+  /// Alignments for custom Block elements.
+  ///
+  /// The key is the node's tag.
+  final Map<String, WrapAlignment> customBlockAlignments;
+
+  /// Text style for custom Block elements.
+  ///
+  /// The key is the node's tag.
+  final Map<String, TextStyle?> customBlockTextStyles;
 
   /// A [Map] from element name to the corresponding [TextStyle] object.
   Map<String, TextStyle?> get styles => _styles;
@@ -776,6 +802,7 @@ class MarkdownStyleSheet {
         other.codeblockPadding == codeblockPadding &&
         other.codeblockDecoration == codeblockDecoration &&
         other.horizontalRuleDecoration == horizontalRuleDecoration &&
+        other.horizontalRulePadding == horizontalRulePadding &&
         other.textAlign == textAlign &&
         other.h1Align == h1Align &&
         other.h2Align == h2Align &&
@@ -788,7 +815,9 @@ class MarkdownStyleSheet {
         other.blockquoteAlign == blockquoteAlign &&
         other.codeblockAlign == codeblockAlign &&
         other.superscriptFontFeatureTag == superscriptFontFeatureTag &&
-        other.textScaler == textScaler;
+        other.textScaler == textScaler &&
+        other.customBlockAlignments == customBlockAlignments &&
+        other.customBlockTextStyles == customBlockTextStyles;
   }
 
   @override
@@ -837,6 +866,7 @@ class MarkdownStyleSheet {
       codeblockPadding,
       codeblockDecoration,
       horizontalRuleDecoration,
+      horizontalRulePadding,
       textAlign,
       h1Align,
       h2Align,
@@ -850,6 +880,8 @@ class MarkdownStyleSheet {
       codeblockAlign,
       textScaler,
       textScaleFactor,
+      customBlockAlignments,
+      customBlockTextStyles,
       superscriptFontFeatureTag,
     ]);
   }
