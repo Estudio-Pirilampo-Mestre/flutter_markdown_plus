@@ -463,8 +463,20 @@ class MarkdownBuilder implements md.NodeVisitor {
           }
           Widget bullet;
           final dynamic el = element.children![0];
+          // In a loose list (blank line between items), the markdown parser
+          // wraps list item content in a <p> element. We need to look inside
+          // that paragraph to find the checkbox input element.
+          md.Element? checkboxEl;
           if (el is md.Element && el.attributes['type'] == 'checkbox') {
-            final bool val = el.attributes.containsKey('checked');
+            checkboxEl = el;
+          } else if (el is md.Element && el.tag == 'p' && el.children != null && el.children!.isNotEmpty) {
+            final dynamic firstChild = el.children![0];
+            if (firstChild is md.Element && firstChild.attributes['type'] == 'checkbox') {
+              checkboxEl = firstChild;
+            }
+          }
+          if (checkboxEl != null) {
+            final bool val = checkboxEl.attributes.containsKey('checked');
             bullet = _buildCheckbox(val);
           } else {
             bullet = _buildBullet(_listIndents.last);

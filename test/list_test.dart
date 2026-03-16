@@ -252,6 +252,29 @@ void defineTests() {
         ]);
       },
     );
+
+    testWidgets(
+      'task list with blank line between items (loose list)',
+      (WidgetTester tester) async {
+        const String data = '- [x] Item 1\n- [ ] Item 2\n\n- [ ] Item 3';
+        await tester.pumpWidget(
+          boilerplate(
+            const MarkdownBody(data: data),
+          ),
+        );
+
+        final Iterable<Widget> widgets = tester.allWidgets;
+
+        expectTextStrings(widgets, <String>[
+          String.fromCharCode(Icons.check_box.codePoint),
+          'Item 1',
+          String.fromCharCode(Icons.check_box_outline_blank.codePoint),
+          'Item 2',
+          String.fromCharCode(Icons.check_box_outline_blank.codePoint),
+          'Item 3',
+        ]);
+      },
+    );
   });
 
   group('fitContent', () {
