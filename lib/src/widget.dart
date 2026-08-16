@@ -232,6 +232,7 @@ abstract class MarkdownWidget extends StatefulWidget {
     this.onSelectionChanged,
     this.onTapLink,
     this.onTapText,
+    this.contextMenuBuilder = _defaultContextMenuBuilder,
     this.imageDirectory,
     this.blockSyntaxes,
     this.inlineSyntaxes,
@@ -277,6 +278,21 @@ abstract class MarkdownWidget extends StatefulWidget {
 
   /// Default tap handler used when [selectable] is set to true
   final VoidCallback? onTapText;
+
+  /// Builds the text selection toolbar when [selectable] is set to true.
+  ///
+  /// Defaults to the platform-adaptive Flutter text selection toolbar. Set this
+  /// to null to suppress the text selection context menu.
+  final EditableTextContextMenuBuilder? contextMenuBuilder;
+
+  static Widget _defaultContextMenuBuilder(
+    BuildContext context,
+    EditableTextState editableTextState,
+  ) {
+    return AdaptiveTextSelectionToolbar.editableText(
+      editableTextState: editableTextState,
+    );
+  }
 
   /// The base directory holding images referenced by Img tags with local or network file paths.
   final String? imageDirectory;
@@ -407,6 +423,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget> implements MarkdownBuil
       listItemCrossAxisAlignment: widget.listItemCrossAxisAlignment,
       onSelectionChanged: widget.onSelectionChanged,
       onTapText: widget.onTapText,
+      contextMenuBuilder: widget.contextMenuBuilder,
       softLineBreak: widget.softLineBreak,
     );
 
@@ -470,6 +487,7 @@ class MarkdownBody extends MarkdownWidget {
     super.onSelectionChanged,
     super.onTapLink,
     super.onTapText,
+    super.contextMenuBuilder,
     super.imageDirectory,
     super.blockSyntaxes,
     super.inlineSyntaxes,
@@ -524,6 +542,7 @@ class Markdown extends MarkdownWidget {
     super.onSelectionChanged,
     super.onTapLink,
     super.onTapText,
+    super.contextMenuBuilder,
     super.imageDirectory,
     super.blockSyntaxes,
     super.inlineSyntaxes,
@@ -538,6 +557,7 @@ class Markdown extends MarkdownWidget {
     this.controller,
     this.physics,
     this.shrinkWrap = false,
+    this.noScroll = false,
     super.softLineBreak,
   });
 
@@ -560,8 +580,20 @@ class Markdown extends MarkdownWidget {
   /// See also: [ScrollView.shrinkWrap]
   final bool shrinkWrap;
 
+  /// If true, the markdown is rendered in a non-scrolling [Column] instead of
+  /// a scrolling [ListView]. Use this when the widget is already inside a
+  /// scrolling parent.
+  final bool noScroll;
+
   @override
   Widget build(BuildContext context, List<Widget>? children) {
+    if (noScroll) {
+      final List<Widget> childrenWithPadding = <Widget>[];
+      for (final Widget child in children ?? <Widget>[]) {
+        childrenWithPadding.add(Padding(padding: padding, child: child));
+      }
+      return Column(children: childrenWithPadding);
+    }
     return ListView(
       padding: padding,
       controller: controller,

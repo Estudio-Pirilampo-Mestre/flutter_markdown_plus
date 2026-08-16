@@ -112,6 +112,7 @@ class MarkdownBuilder implements md.NodeVisitor {
     this.fitContent = false,
     this.onSelectionChanged,
     this.onTapText,
+    this.contextMenuBuilder,
     this.softLineBreak = false,
   });
 
@@ -159,6 +160,11 @@ class MarkdownBuilder implements md.NodeVisitor {
 
   /// Default tap handler used when [selectable] is set to true
   final VoidCallback? onTapText;
+
+  /// Builds the text selection toolbar when [selectable] is set to true.
+  ///
+  /// Set this to null to suppress the text selection context menu.
+  final EditableTextContextMenuBuilder? contextMenuBuilder;
 
   /// The soft line break is used to identify the spaces at the end of aline of
   /// text and the leading spaces in the immediately following the line of text.
@@ -562,11 +568,13 @@ class MarkdownBuilder implements md.NodeVisitor {
           parent.style,
         );
         if (child != null) {
-          if (current.children.isEmpty) {
-            current.children.add(child);
-          } else {
-            current.children[0] = child;
-          }
+          // The returned widget represents the entire element, so discard all
+          // existing inline children — replacing only children[0] leaves any
+          // siblings (e.g. link text split on a `_`/`*` delimiter) to leak
+          // through to the parent and render twice. See issue #132.
+          current.children
+            ..clear()
+            ..add(child);
         }
       } else if (tag == 'img') {
         // create an image widget for this image
@@ -805,7 +813,7 @@ class MarkdownBuilder implements md.NodeVisitor {
     if (_inlines.isEmpty) {
       _inlines.add(_InlineElement(
         tag,
-        style: tag != null ? styleSheet.styles[tag] : null,
+        style: _isInBlockquote ? styleSheet.blockquote : (tag != null ? styleSheet.styles[tag] : null),
       ));
     }
   }
@@ -1064,16 +1072,31 @@ class MarkdownBuilder implements md.NodeVisitor {
   Widget _buildRichText(TextSpan text, {TextAlign? textAlign, String? key}) {
     //Adding a unique key prevents the problem of using the same link handler for text spans with the same text
     final Key k = key == null ? UniqueKey() : Key(key);
+    // Force a consistent line height within each text block, derived from the
+    // span's own base style so headers/blockquotes keep their correct height
+    // while mixed font weights within a block no longer shift line height.
+    final TextStyle? baseStyle = text.style ?? styleSheet.p;
+    final StrutStyle? strutStyle = baseStyle != null
+        ? StrutStyle(
+            fontFamily: baseStyle.fontFamily,
+            fontSize: baseStyle.fontSize ?? styleSheet.p?.fontSize,
+            height: baseStyle.height ?? styleSheet.p?.height,
+            leading: 0,
+            forceStrutHeight: true,
+          )
+        : null;
     if (selectable) {
       return SelectableText.rich(
         text,
         textScaler: styleSheet.textScaler,
         textAlign: textAlign ?? TextAlign.start,
+        strutStyle: strutStyle,
         onSelectionChanged: onSelectionChanged != null
             ? (TextSelection selection, SelectionChangedCause? cause) =>
-                onSelectionChanged!(text.text, selection, cause)
+                onSelectionChanged!(text.toPlainText(), selection, cause)
             : null,
         onTap: onTapText,
+        contextMenuBuilder: contextMenuBuilder,
         key: k,
       );
     } else {
@@ -1081,6 +1104,7 @@ class MarkdownBuilder implements md.NodeVisitor {
         text,
         textScaler: styleSheet.textScaler,
         textAlign: textAlign ?? TextAlign.start,
+        strutStyle: strutStyle,
         key: k,
       );
     }
