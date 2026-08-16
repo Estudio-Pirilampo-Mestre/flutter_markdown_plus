@@ -453,7 +453,6 @@ class MarkdownBuilder implements md.NodeVisitor {
             element,
             styleSheet.styles[tag],
             _inlines.isNotEmpty ? _inlines.last.style : null,
-            recognizer: _linkHandlers.isNotEmpty ? _linkHandlers.last : null
           )!;
         }
       } else {
