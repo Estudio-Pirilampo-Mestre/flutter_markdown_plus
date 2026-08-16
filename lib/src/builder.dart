@@ -269,7 +269,7 @@ class MarkdownBuilder implements md.NodeVisitor {
       }
       _blocks.add(bElement);
     } else {
-      if (tag == 'a' && !builders.containsKey('a')) {
+      if (tag == 'a') {
         final String? text = extractTextFromElement(element);
         // Don't add empty links
         if (text == null) {
@@ -574,7 +574,7 @@ class MarkdownBuilder implements md.NodeVisitor {
           // through to the parent and render twice. See issue #132.
           current.children
             ..clear()
-            ..add(child);
+            ..add(_linkHandlers.isNotEmpty ? _buildLink(child) : child);
         }
       } else if (tag == 'img') {
         // create an image widget for this image
@@ -610,10 +610,6 @@ class MarkdownBuilder implements md.NodeVisitor {
           isHeader: isHeaderCell,
         );
         _tables.single.rows.last.children.add(child);
-      } else if (tag == 'a') {
-        if (!builders.containsKey('a')) {
-          _linkHandlers.removeLast();
-        }
       } else if (tag == 'sup') {
         final Widget c = current.children.last;
         TextSpan? textSpan;
@@ -639,6 +635,10 @@ class MarkdownBuilder implements md.NodeVisitor {
           current.children.removeLast();
           current.children.add(richText);
         }
+      }
+
+      if (tag == 'a') {
+        _linkHandlers.removeLast();
       }
 
       if (current.children.isNotEmpty) {
@@ -719,6 +719,30 @@ class MarkdownBuilder implements md.NodeVisitor {
     } else {
       return child;
     }
+  }
+
+  Widget _buildLink(Widget child) {
+    final InlineSpan? span = _getInlineSpanFromText(child);
+    if (span != null && !_containsWidgetSpan(span)) {
+      return child;
+    }
+
+    final TapGestureRecognizer recognizer = _linkHandlers.last as TapGestureRecognizer;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: recognizer.onTap,
+      child: child,
+    );
+  }
+
+  bool _containsWidgetSpan(InlineSpan span) {
+    if (span is WidgetSpan) {
+      return true;
+    }
+    if (span is TextSpan && span.children != null) {
+      return span.children!.any(_containsWidgetSpan);
+    }
+    return false;
   }
 
   Widget _buildCheckbox(bool checked) {
