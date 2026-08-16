@@ -1082,7 +1082,7 @@ class MarkdownBuilder implements md.NodeVisitor {
             fontSize: baseStyle.fontSize ?? styleSheet.p?.fontSize,
             height: baseStyle.height ?? styleSheet.p?.height,
             leading: 0,
-            forceStrutHeight: true,
+            forceStrutHeight: false,
           )
         : null;
     if (selectable) {
