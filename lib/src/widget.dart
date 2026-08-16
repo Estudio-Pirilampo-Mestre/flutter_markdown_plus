@@ -97,6 +97,7 @@ abstract class MarkdownBlockBuilder extends MarkdownElementBuilder {
     md.Element element,
     TextStyle? preferredStyle,
     TextStyle? parentStyle, {
+    GestureRecognizer? recognizer,
     Widget? child,
   }) {
     return super.visitElementAfterWithContext(
@@ -141,8 +142,9 @@ abstract class MarkdownElementBuilder {
     BuildContext context,
     md.Element element,
     TextStyle? preferredStyle,
-    TextStyle? parentStyle,
-  ) {
+    TextStyle? parentStyle, {
+    GestureRecognizer? recognizer
+  }) {
     return visitElementAfter(element, preferredStyle);
   }
 
