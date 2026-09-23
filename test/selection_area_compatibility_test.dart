@@ -72,7 +72,7 @@ void defineTests() {
         await tester.pump();
 
         expect(content, isNotNull);
-        expect(content!.plainText, '•Item 1•Item 2•Item 3');
+        expect(content!.plainText, '• Item 1\n• Item 2\n• Item 3');
       },
     );
   });

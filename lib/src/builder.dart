@@ -4,6 +4,7 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '_functions_io.dart' if (dart.library.js_interop) '_functions_web.dart';
@@ -550,6 +551,10 @@ class MarkdownBuilder implements md.NodeVisitor {
           decoration: styleSheet.horizontalRuleDecoration,
           margin: styleSheet.horizontalRulePadding,
         );
+      }
+
+      if (_isListTag(tag)) {
+        child = _MarkdownListSelectionContainer(child: child);
       }
 
       if (tag == 'hr' && paddingBuilders.containsKey(tag)) {
@@ -1219,6 +1224,61 @@ class MarkdownBuilder implements md.NodeVisitor {
         key: k,
       );
     }
+  }
+}
+
+class _MarkdownListSelectionDelegate extends StaticSelectionContainerDelegate {
+  @override
+  SelectedContent? getSelectedContent() {
+    final List<SelectedContent> selections = <SelectedContent>[
+      for (final Selectable selectable in selectables)
+        if (selectable.getSelectedContent() case final SelectedContent data) data,
+    ];
+    if (selections.isEmpty) {
+      return null;
+    }
+    final StringBuffer plainText = StringBuffer();
+    for (final SelectedContent selection in selections) {
+      if (plainText.isNotEmpty && _isListBullet(selection.plainText)) {
+        plainText.write('\n');
+      }
+      plainText.write(selection.plainText);
+      if (_isListBullet(selection.plainText)) {
+        plainText.write(' ');
+      }
+    }
+    return SelectedContent(plainText: plainText.toString());
+  }
+
+  bool _isListBullet(String text) {
+    return text == '•' || RegExp(r'^\d+\.$').hasMatch(text);
+  }
+}
+
+class _MarkdownListSelectionContainer extends StatefulWidget {
+  const _MarkdownListSelectionContainer({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_MarkdownListSelectionContainer> createState() => _MarkdownListSelectionContainerState();
+}
+
+class _MarkdownListSelectionContainerState extends State<_MarkdownListSelectionContainer> {
+  final _MarkdownListSelectionDelegate _delegate = _MarkdownListSelectionDelegate();
+
+  @override
+  void dispose() {
+    _delegate.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SelectionContainer(
+      delegate: _delegate,
+      child: widget.child,
+    );
   }
 }
 
