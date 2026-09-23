@@ -16,6 +16,10 @@ void defineTests() {
       'Text can be selected',
       (WidgetTester tester) async {
         SelectedContent? content;
+        addTearDown(() async {
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pumpAndSettle();
+        });
 
         const String data = 'How are you?';
         await tester.pumpWidget(MaterialApp(
@@ -44,6 +48,10 @@ void defineTests() {
       'List can be selected',
       (WidgetTester tester) async {
         SelectedContent? content;
+        addTearDown(() async {
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pumpAndSettle();
+        });
 
         const String data = '- Item 1\n- Item 2\n- Item 3';
         await tester.pumpWidget(MaterialApp(

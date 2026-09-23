@@ -449,11 +449,12 @@ class MarkdownBuilder implements md.NodeVisitor {
           );
         } else {
           child = builder.visitElementAfterWithContext(
-            delegate.context,
-            element,
-            styleSheet.styles[tag],
-            _inlines.isNotEmpty ? _inlines.last.style : null,
-          )!;
+                delegate.context,
+                element,
+                styleSheet.styles[tag],
+                _inlines.isNotEmpty ? _inlines.last.style : null,
+              ) ??
+              defaultChild();
         }
       } else {
         child = defaultChild();
@@ -496,8 +497,9 @@ class MarkdownBuilder implements md.NodeVisitor {
                 : CrossAxisAlignment.baseline,
             children: <Widget>[
               SizedBox(
-                width:
-                    styleSheet.listIndent! + styleSheet.listBulletPadding!.left + styleSheet.listBulletPadding!.right,
+                width: (styleSheet.listIndent ?? 0) +
+                    (styleSheet.listBulletPadding ?? EdgeInsets.zero).left +
+                    (styleSheet.listBulletPadding ?? EdgeInsets.zero).right,
                 child: bullet,
               ),
               Flexible(
@@ -543,11 +545,15 @@ class MarkdownBuilder implements md.NodeVisitor {
           decoration: styleSheet.codeblockDecoration,
           child: child,
         );
-      } else if (tag == 'hr') {
+      } else if (tag == 'hr' && builder == null) {
         child = Container(
           decoration: styleSheet.horizontalRuleDecoration,
           margin: styleSheet.horizontalRulePadding,
         );
+      }
+
+      if (tag == 'hr' && paddingBuilders.containsKey(tag)) {
+        child = _buildPadding(paddingBuilders[tag]!.getPadding(), child);
       }
 
       _addBlockChild(child);
@@ -623,7 +629,7 @@ class MarkdownBuilder implements md.NodeVisitor {
             TextSpan(
               recognizer: textSpan.recognizer,
               text: element.textContent,
-              style: textSpan.style?.copyWith(
+              style: (textSpan.style ?? const TextStyle()).copyWith(
                 fontFeatures: <FontFeature>[
                   const FontFeature.enable('sups'),
                   if (styleSheet.superscriptFontFeatureTag != null)
@@ -789,8 +795,8 @@ class MarkdownBuilder implements md.NodeVisitor {
         baseline: span.baseline,
         style: span.style,
         child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: recognizer.onTap,
+          behavior: HitTestBehavior.opaque,
+          onTap: recognizer.onTap,
           child: span.child,
         ),
       );
@@ -842,10 +848,11 @@ class MarkdownBuilder implements md.NodeVisitor {
   Widget _buildBullet(String listTag) {
     final int index = _blocks.last.nextListIndex;
     final bool isUnordered = listTag == 'ul';
+    final EdgeInsets bulletPadding = styleSheet.listBulletPadding ?? EdgeInsets.zero;
 
     if (bulletBuilder != null) {
       return Padding(
-        padding: styleSheet.listBulletPadding!,
+        padding: bulletPadding,
         child: bulletBuilder!(
           MarkdownBulletParameters(
             index: index,
@@ -858,7 +865,7 @@ class MarkdownBuilder implements md.NodeVisitor {
 
     if (isUnordered) {
       return Padding(
-        padding: styleSheet.listBulletPadding!,
+        padding: bulletPadding,
         child: Text(
           '•',
           textAlign: TextAlign.center,
@@ -868,7 +875,7 @@ class MarkdownBuilder implements md.NodeVisitor {
     }
 
     return Padding(
-      padding: styleSheet.listBulletPadding!,
+      padding: bulletPadding,
       child: Text(
         '${index + 1}.',
         textAlign: TextAlign.right,
@@ -880,10 +887,10 @@ class MarkdownBuilder implements md.NodeVisitor {
   Widget _buildTableCell(List<Widget?> children, {TextAlign? textAlign, bool isHeader = false}) {
     final EdgeInsets cellPadding = isHeader && styleSheet.tableHeadCellsPadding != null
         ? styleSheet.tableHeadCellsPadding!
-        : styleSheet.tableCellsPadding!;
+        : styleSheet.tableCellsPadding ?? EdgeInsets.zero;
 
     final TextStyle cellStyle =
-        isHeader && styleSheet.tableHead != null ? styleSheet.tableHead! : styleSheet.tableBody!;
+        isHeader && styleSheet.tableHead != null ? styleSheet.tableHead! : styleSheet.tableBody ?? const TextStyle();
 
     return TableCell(
       child: Padding(
@@ -1116,19 +1123,19 @@ class MarkdownBuilder implements md.NodeVisitor {
   EdgeInsets _textPaddingForBlockTag(String? blockTag) {
     switch (blockTag) {
       case 'p':
-        return styleSheet.pPadding!;
+        return styleSheet.pPadding ?? EdgeInsets.zero;
       case 'h1':
-        return styleSheet.h1Padding!;
+        return styleSheet.h1Padding ?? EdgeInsets.zero;
       case 'h2':
-        return styleSheet.h2Padding!;
+        return styleSheet.h2Padding ?? EdgeInsets.zero;
       case 'h3':
-        return styleSheet.h3Padding!;
+        return styleSheet.h3Padding ?? EdgeInsets.zero;
       case 'h4':
-        return styleSheet.h4Padding!;
+        return styleSheet.h4Padding ?? EdgeInsets.zero;
       case 'h5':
-        return styleSheet.h5Padding!;
+        return styleSheet.h5Padding ?? EdgeInsets.zero;
       case 'h6':
-        return styleSheet.h6Padding!;
+        return styleSheet.h6Padding ?? EdgeInsets.zero;
     }
     return EdgeInsets.zero;
   }

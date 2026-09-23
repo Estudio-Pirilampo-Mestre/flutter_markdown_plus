@@ -110,6 +110,10 @@ Future<void> _expectGolden(WidgetTester tester, String data, String file) async 
   tester.view.physicalSize = const Size(390 * 2.0, 844 * 2.0);
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
 
   final ThemeData base = ThemeData(
     colorSchemeSeed: const Color(0xFF2962FF),

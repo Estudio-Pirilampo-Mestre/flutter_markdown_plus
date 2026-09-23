@@ -401,6 +401,13 @@ void defineTests() {
     testWidgets(
       'custom image builder',
       (WidgetTester tester) async {
+        addTearDown(() async {
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pumpAndSettle();
+          imageCache.clear();
+          imageCache.clearLiveImages();
+        });
+
         const String data = '![alt](https://img.png)';
         Widget builder(Uri uri, String? title, String? alt) => Image.asset('assets/logo.png');
 
@@ -441,6 +448,7 @@ void defineTests() {
         await expectLater(
             find.byType(Container), matchesGoldenFile('assets/images/golden/image_test/custom_builder_asset_logo.png'));
         imageCache.clear();
+        imageCache.clearLiveImages();
       },
       skip: kIsWeb || isLinux, // Goldens are platform-specific.
     );
