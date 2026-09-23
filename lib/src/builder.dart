@@ -723,16 +723,96 @@ class MarkdownBuilder implements md.NodeVisitor {
 
   Widget _buildLink(Widget child) {
     final InlineSpan? span = _getInlineSpanFromText(child);
-    if (span != null && !_containsWidgetSpan(span)) {
+    if (span == null) {
+      final TapGestureRecognizer recognizer = _linkHandlers.last as TapGestureRecognizer;
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: recognizer.onTap,
+        child: child,
+      );
+    }
+
+    if (!_containsWidgetSpan(span)) {
       return child;
     }
 
     final TapGestureRecognizer recognizer = _linkHandlers.last as TapGestureRecognizer;
-    return GestureDetector(
+    final InlineSpan linkedSpan = _addLinkToWidgetSpans(span, recognizer);
+
+    if (child is Text) {
+      return Text.rich(
+        linkedSpan,
+        key: child.key,
+        style: child.style,
+        strutStyle: child.strutStyle,
+        textAlign: child.textAlign,
+        textDirection: child.textDirection,
+        locale: child.locale,
+        softWrap: child.softWrap,
+        overflow: child.overflow,
+        textScaler: child.textScaler,
+        maxLines: child.maxLines,
+        semanticsLabel: child.semanticsLabel,
+        semanticsIdentifier: child.semanticsIdentifier,
+        textWidthBasis: child.textWidthBasis,
+        textHeightBehavior: child.textHeightBehavior,
+        selectionColor: child.selectionColor,
+      );
+    }
+
+    if (child is RichText) {
+      return RichText(
+        text: linkedSpan,
+        key: child.key,
+        textAlign: child.textAlign,
+        textDirection: child.textDirection,
+        softWrap: child.softWrap,
+        overflow: child.overflow,
+        textScaler: child.textScaler,
+        maxLines: child.maxLines,
+        locale: child.locale,
+        strutStyle: child.strutStyle,
+        textWidthBasis: child.textWidthBasis,
+        textHeightBehavior: child.textHeightBehavior,
+        selectionRegistrar: child.selectionRegistrar,
+        selectionColor: child.selectionColor,
+      );
+    }
+
+    return Text.rich(linkedSpan, key: child.key);
+  }
+
+  InlineSpan _addLinkToWidgetSpans(InlineSpan span, TapGestureRecognizer recognizer) {
+    if (span is WidgetSpan) {
+      return WidgetSpan(
+        alignment: span.alignment,
+        baseline: span.baseline,
+        style: span.style,
+        child: GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: recognizer.onTap,
-      child: child,
-    );
+          child: span.child,
+        ),
+      );
+    }
+
+    if (span is TextSpan && span.children != null) {
+      return TextSpan(
+        text: span.text,
+        children: span.children!.map((InlineSpan child) => _addLinkToWidgetSpans(child, recognizer)).toList(),
+        style: span.style,
+        recognizer: span.recognizer,
+        mouseCursor: span.mouseCursor,
+        onEnter: span.onEnter,
+        onExit: span.onExit,
+        semanticsLabel: span.semanticsLabel,
+        semanticsIdentifier: span.semanticsIdentifier,
+        locale: span.locale,
+        spellOut: span.spellOut,
+      );
+    }
+
+    return span;
   }
 
   bool _containsWidgetSpan(InlineSpan span) {

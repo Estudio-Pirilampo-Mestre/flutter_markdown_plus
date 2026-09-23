@@ -47,6 +47,43 @@ void defineTests() {
         expect(part3.toPlainText(), ' bar');
       },
     );
+
+    testWidgets(
+      'widget spans in links remain inline and tappable',
+      (WidgetTester tester) async {
+        int taps = 0;
+        await tester.pumpWidget(
+          boilerplate(
+            MarkdownBody(
+              data: 'before [foo](href) after',
+              builders: <String, MarkdownElementBuilder>{
+                'sub': SubscriptBuilder(),
+              },
+              extensionSet: md.ExtensionSet(
+                <md.BlockSyntax>[],
+                <md.InlineSyntax>[SubscriptSyntax()],
+              ),
+              onTapLink: (String text, String? href, String title) => taps += 1,
+            ),
+          ),
+        );
+
+        final Finder textWithWidgetSpan = find.byWidgetPredicate(
+          (Widget widget) =>
+              widget is Text &&
+              widget.textSpan is TextSpan &&
+              (widget.textSpan! as TextSpan).children!.any((InlineSpan span) => span is WidgetSpan),
+        );
+        expect(textWithWidgetSpan, findsOneWidget);
+
+        final Text text = tester.widget<Text>(textWithWidgetSpan);
+        final WidgetSpan widgetSpan = (text.textSpan! as TextSpan).children!.whereType<WidgetSpan>().single;
+        expect(widgetSpan.child, isA<GestureDetector>());
+
+        await tester.tap(find.text('foo'));
+        expect(taps, 1);
+      },
+    );
   });
 }
 
