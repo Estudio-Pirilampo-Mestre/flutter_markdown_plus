@@ -779,7 +779,7 @@ class MarkdownBuilder implements md.NodeVisitor {
         textDirection: child.textDirection,
         softWrap: child.softWrap,
         overflow: child.overflow,
-        textScaler: child.textScaler,
+        textScaler: styleSheet.textScaler ?? MediaQuery.textScalerOf(delegate.context),
         maxLines: child.maxLines,
         locale: child.locale,
         strutStyle: child.strutStyle,
